@@ -63,28 +63,61 @@ class Crawler {
 class CrawlerIntern {
     constructor() {
         this.visited = [];
+        this.added = [];
     }
 
     async crawl(curUrl, depth, cb) {
         if (depth > 0) {
             this.visited.push(curUrl);
 
+
             console.log(curUrl);
 
             try {
                 let html = await fetch(curUrl).then(res => res.text());
 
-                let links = html.match(/<a.*?href="http.*?"/g);
+
+
+                let links = html.match(/<a.*?href="[^#]*?"/g);
+
+                for (let i = 0; i < links.length; i++) {
+                    if (links[i][links[i].indexOf("href=\"") + 6] === "/"){
+
+                        //console.log("link :" + i + ":")
+                        //console.log(links[i]);
+                        let tmp = links[i].substr(links[i].indexOf("href=\"") + 6, links[i].length-1 - links[i].indexOf("href=\"") + 6);
+                        links[i] = links[i].slice(0, links[i].indexOf("href=\"") + 6) + "https://" + curUrl.base() + tmp;
+                        //console.log(links[i]);
+                        //console.log("");
+                    }
+
+                }
+
                 if (links != null) {
                     links = links.map(tag => {
+                        //console.log(tag);
                         let quote = tag.indexOf("href=\"") + 6,
                             quote2 = tag.substr(quote).indexOf("\"");
+                        //console.log(tag.substr(quote, quote2));
                         return tag.substr(quote, quote2);
                     });
 
+                    /*
                     for (let i = 0; i < links.length; i++) {
-                        let url = links.splice(Math.floor(Math.random() * links.length), 1)[0];
+                        if (!this.added.includes(links[i].base())) {
+                            fs.appendFile('test.html', links[i] + "<br>", () => {});
+                            this.added.push(links[i].base());
+                        }
+                    }
+                    */
+
+
+                    for (let i = 0; i < links.length; i++) {
+                        //let url = links.splice(Math.floor(Math.random() * links.length), 1)[0];
+                        let url = links[i];
+                        //console.log(url);
                         if (!this.visited.includes(url) && curUrl.base() === url.base()) {
+                            //links.remove(links[i]);
                             this.crawl(url, depth - 1, cb);
                         }
                     }
@@ -100,7 +133,8 @@ class CrawlerIntern {
     fs.writeFile('test.html', '', () => {
         let michel = new CrawlerIntern();
         let allImg = [];
-        michel.crawl("https://yande.re/post?tags=order%3Arandom", 6, (html, url) => {
+        michel.crawl("https://alcide-orbigny.paysdelaloire.e-lyco.fr/", 200, (html, url) => {
+
             let imgs = html.match(/<img.*?>/g);
             imgs.map(img => {
                 img = parseImg(img, url);
